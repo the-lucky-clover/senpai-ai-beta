@@ -4,7 +4,7 @@ import { Search, Filter, Heart, Eye, Wand2, Download, Star } from "lucide-react"
 import { motion } from "motion/react";
 import { cn } from "../lib/utils";
 
-const categories = ["All", "Anime", "Realistic", "Fantasy", "Cyberpunk", "Mecha", "NSFW"];
+const categories = ["All", "Anime", "Realistic", "Fantasy", "Cyberpunk", "Mecha", "NSFW", "Companions"];
 
 interface GalleryItem {
   id: string | number;
@@ -35,12 +35,16 @@ export default function Explore() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [items, setItems] = useState<GalleryItem[]>(initialGalleryItems);
+  const [companions, setCompanions] = useState<any[]>([]);
 
   useEffect(() => {
     const communityItems = JSON.parse(localStorage.getItem("senpai_community") || "[]");
+    const communityCompanions = JSON.parse(localStorage.getItem("senpai_companions") || "[]");
+    
     if (communityItems.length > 0) {
       setItems([...communityItems, ...initialGalleryItems]);
     }
+    setCompanions(communityCompanions);
   }, []);
 
   const handleRate = (id: string | number, rating: number) => {
@@ -89,86 +93,137 @@ export default function Explore() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
-          {items.map((item, i) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: (i % 10) * 0.05 }}
-              className="relative group rounded-xl overflow-hidden bg-zinc-900 break-inside-avoid cursor-pointer"
-            >
-              <img
-                src={item.src}
-                alt={`Gallery item ${item.id}`}
-                className="w-full h-auto object-cover"
-                referrerPolicy="no-referrer"
-                loading="lazy"
-              />
-              
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-white truncate pr-4">
-                    @{item.author}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate('/create', { 
-                          state: { 
-                            referenceImage: item.src, 
-                            prompt: item.prompt || `Masterpiece anime style artwork by ${item.author}` 
-                          } 
-                        });
-                      }}
-                      className="p-2 rounded-full bg-white/10 hover:bg-pink-500/20 hover:text-pink-500 backdrop-blur-sm text-white transition-colors"
-                      title="Generate Variations"
-                    >
-                      <Wand2 className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 rounded-full bg-white/10 hover:bg-pink-500/20 hover:text-pink-500 backdrop-blur-sm text-white transition-colors">
-                      <Heart className="w-4 h-4" />
+        {activeCategory === "Companions" ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {companions.length > 0 ? (
+              companions.map((comp) => (
+                <motion.div
+                  key={comp.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 group hover:border-pink-500/50 transition-all"
+                >
+                  <div className="aspect-square relative">
+                    <img src={comp.avatarUrl} alt={comp.name} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-4">
+                      <h3 className="font-bold text-white">{comp.name}</h3>
+                      <p className="text-[10px] text-pink-400 capitalize mb-2">{comp.personality} • {comp.gender}</p>
+                      
+                      {comp.shareableTraits && comp.shareableTraits.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {comp.shareableTraits.map((trait: string) => (
+                            <span 
+                              key={trait} 
+                              className="px-2 py-0.5 rounded-full bg-pink-500/20 border border-pink-500/40 text-[9px] text-pink-300 font-black uppercase tracking-widest shadow-[0_0_10px_rgba(236,72,153,0.3)]"
+                            >
+                              {trait.split(":")[1]}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-zinc-800" />
+                      <span className="text-xs text-zinc-400">@{comp.creator}</span>
+                    </div>
+                    <button className="text-xs font-bold text-pink-500 hover:text-pink-400">
+                      Chat Now
                     </button>
                   </div>
-                </div>
-
-                {/* Rating System */}
-                <div className="flex items-center gap-1 mb-3">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRate(item.id, star);
-                      }}
-                      className="transition-transform hover:scale-125"
-                    >
-                      <Star 
-                        className={cn(
-                          "w-3.5 h-3.5",
-                          star <= item.rating ? "fill-yellow-400 text-yellow-400" : "text-zinc-500"
-                        )} 
-                      />
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-4 text-xs text-zinc-300">
-                  <div className="flex items-center gap-1">
-                    <Heart className="w-3 h-3" /> {item.likes}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Eye className="w-3 h-3" /> {item.views}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Download className="w-3 h-3" /> {item.downloads}
-                  </div>
-                </div>
+                </motion.div>
+              ))
+            ) : (
+              <div className="col-span-full py-20 text-center">
+                <Heart className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-zinc-500">No shared companions yet</h3>
+                <p className="text-zinc-600 text-sm mt-2">Be the first to share your creation!</p>
               </div>
-            </motion.div>
-          ))}
-        </div>
+            )}
+          </div>
+        ) : (
+          <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+            {items.map((item, i) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: (i % 10) * 0.05 }}
+                className="relative group rounded-xl overflow-hidden bg-zinc-900 break-inside-avoid cursor-pointer"
+              >
+                <img
+                  src={item.src}
+                  alt={`Gallery item ${item.id}`}
+                  className="w-full h-auto object-cover"
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                />
+                
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-white truncate pr-4">
+                      @{item.author}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/create', { 
+                            state: { 
+                              referenceImage: item.src, 
+                              prompt: item.prompt || `Masterpiece anime style artwork by ${item.author}` 
+                            } 
+                          });
+                        }}
+                        className="p-2 rounded-full bg-white/10 hover:bg-pink-500/20 hover:text-pink-500 backdrop-blur-sm text-white transition-colors"
+                        title="Generate Variations"
+                      >
+                        <Wand2 className="w-4 h-4" />
+                      </button>
+                      <button className="p-2 rounded-full bg-white/10 hover:bg-pink-500/20 hover:text-pink-500 backdrop-blur-sm text-white transition-colors">
+                        <Heart className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Rating System */}
+                  <div className="flex items-center gap-1 mb-3">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRate(item.id, star);
+                        }}
+                        className="transition-transform hover:scale-125"
+                      >
+                        <Star 
+                          className={cn(
+                            "w-3.5 h-3.5",
+                            star <= item.rating ? "fill-yellow-400 text-yellow-400" : "text-zinc-500"
+                          )} 
+                        />
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-4 text-xs text-zinc-300">
+                    <div className="flex items-center gap-1">
+                      <Heart className="w-3 h-3" /> {item.likes}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Eye className="w-3 h-3" /> {item.views}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Download className="w-3 h-3" /> {item.downloads}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

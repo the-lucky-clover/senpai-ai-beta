@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, ChangeEvent } from "react";
 import { useLocation } from "react-router-dom";
-import { Sparkles, Settings2, Image as ImageIcon, Download, Share2, Loader2, Wand2, Upload, Maximize, AlertCircle, X, History, ZoomIn, ZoomOut, RefreshCw, TrendingUp, FlipHorizontal, FlipVertical } from "lucide-react";
+import { Sparkles, Settings2, Image as ImageIcon, Download, Share2, Loader2, Wand2, Upload, Maximize, AlertCircle, X, History, ZoomIn, ZoomOut, RefreshCw, TrendingUp, FlipHorizontal, FlipVertical, Palette } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
 
@@ -55,14 +55,25 @@ export default function Create() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUpscaling, setIsUpscaling] = useState(false);
   const [showUpscaleConfirm, setShowUpscaleConfirm] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
+  const [showPromptHistory, setShowPromptHistory] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [flipH, setFlipH] = useState(false);
   const [flipV, setFlipV] = useState(false);
+  
+  // Filters & Effects
+  const [sharpen, setSharpen] = useState(0);
+  const [vignette, setVignette] = useState(0);
+  const [vignetteRadius, setVignetteRadius] = useState(50);
+  const [noise, setNoise] = useState(0);
+  const [blur, setBlur] = useState(0);
+  const [colorGrade, setColorGrade] = useState("none");
+  const [gradeIntensity, setGradeIntensity] = useState(100);
+  
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -152,6 +163,9 @@ export default function Create() {
     setError(null);
     setZoom(1);
     setRotation(0);
+    
+    // Notify companion
+    window.dispatchEvent(new CustomEvent('senpai_action', { detail: { type: 'generate' } }));
     
     try {
       // Simulate processing time
@@ -263,7 +277,7 @@ export default function Create() {
   const handleFlipV = () => setFlipV(prev => !prev);
 
   return (
-    <div className="flex-1 flex flex-col md:flex-row h-[calc(100vh-4rem)] overflow-hidden bg-zinc-950">
+    <div className="flex-1 flex flex-col md:flex-row h-screen overflow-hidden bg-zinc-950">
       {/* Sidebar Controls */}
       <div className="w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-zinc-800 bg-zinc-900/50 flex flex-col overflow-y-auto">
         <div className="p-4 space-y-6">
@@ -273,16 +287,6 @@ export default function Create() {
               <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
                 <Wand2 className="w-4 h-4" /> Prompt
               </label>
-              <button 
-                onClick={() => setShowHistory(!showHistory)}
-                className={cn(
-                  "p-1.5 rounded-lg transition-colors",
-                  showHistory ? "bg-pink-500/20 text-pink-500" : "text-zinc-500 hover:text-zinc-300"
-                )}
-                title="View History"
-              >
-                <History className="w-4 h-4" />
-              </button>
             </div>
             <textarea
               value={prompt}
@@ -290,6 +294,58 @@ export default function Create() {
               placeholder="1girl, solo, looking at viewer, masterpiece, best quality..."
               className="w-full h-32 bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-pink-500/50 resize-none"
             />
+          </div>
+
+          {/* Prompt History Collapsible */}
+          <div className="border-t border-zinc-800 pt-4">
+            <button 
+              onClick={() => setShowPromptHistory(!showPromptHistory)}
+              className="flex items-center justify-between w-full text-xs font-bold text-zinc-500 uppercase tracking-wider hover:text-zinc-300 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <History className="w-3 h-3" />
+                Prompt History
+              </div>
+              <motion.div
+                animate={{ rotate: showPromptHistory ? 180 : 0 }}
+              >
+                <RefreshCw className="w-3 h-3" />
+              </motion.div>
+            </button>
+            <AnimatePresence>
+              {showPromptHistory && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-3 space-y-2">
+                    {history.length === 0 ? (
+                      <p className="text-[10px] text-zinc-600 py-2 italic">No history yet</p>
+                    ) : (
+                      history.slice(0, 10).map((item) => (
+                        <div key={item.id} className="p-2 rounded-lg bg-zinc-950/50 border border-zinc-800/50 flex flex-col gap-2">
+                          <p className="text-[10px] text-zinc-400 line-clamp-2 leading-relaxed">{item.prompt}</p>
+                          <button 
+                            onClick={() => {
+                              setPrompt(item.prompt);
+                              setNegativePrompt(item.negativePrompt);
+                              setGuidanceScale(item.guidanceScale);
+                              setSelectedModel(item.model);
+                              setAspectRatio(item.aspectRatio);
+                            }}
+                            className="bg-zinc-800 hover:bg-zinc-700 text-white text-[9px] font-bold py-1 px-2 rounded w-fit transition-colors"
+                          >
+                            Restore
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Trending Prompts */}
@@ -418,6 +474,121 @@ export default function Create() {
               className="hidden"
             />
           </div>
+          {/* Image Effects Section (Collapsible) */}
+          <div className="space-y-4 pt-4 border-t border-zinc-800">
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center justify-between w-full text-xs font-bold text-zinc-500 uppercase tracking-wider hover:text-zinc-300 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Palette className="w-3 h-3" />
+                Filters & Effects
+              </div>
+              <motion.div
+                animate={{ rotate: showFilters ? 180 : 0 }}
+              >
+                <RefreshCw className="w-3 h-3" />
+              </motion.div>
+            </button>
+            
+            <AnimatePresence>
+              {showFilters && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden space-y-4"
+                >
+                  <div className="pt-2"></div>
+                  {/* Sharpen */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-zinc-400">
+                      <span>Sharpen</span>
+                      <span>{sharpen}%</span>
+                    </div>
+                    <input 
+                      type="range" min="0" max="100" value={sharpen} 
+                      onChange={(e) => setSharpen(parseInt(e.target.value))}
+                      className="w-full accent-pink-500" 
+                    />
+                  </div>
+
+                  {/* Blur */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-zinc-400">
+                      <span>Blur</span>
+                      <span>{blur}px</span>
+                    </div>
+                    <input 
+                      type="range" min="0" max="10" step="0.5" value={blur} 
+                      onChange={(e) => setBlur(parseFloat(e.target.value))}
+                      className="w-full accent-pink-500" 
+                    />
+                  </div>
+
+                  {/* Vignette */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-zinc-400">
+                      <span>Vignette Intensity</span>
+                      <span>{vignette}%</span>
+                    </div>
+                    <input 
+                      type="range" min="0" max="100" value={vignette} 
+                      onChange={(e) => setVignette(parseInt(e.target.value))}
+                      className="w-full accent-pink-500" 
+                    />
+                  </div>
+
+                  {/* Noise */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-zinc-400">
+                      <span>Grain / Noise</span>
+                      <span>{noise}%</span>
+                    </div>
+                    <input 
+                      type="range" min="0" max="100" value={noise} 
+                      onChange={(e) => setNoise(parseInt(e.target.value))}
+                      className="w-full accent-pink-500" 
+                    />
+                  </div>
+
+                  {/* Color Grading */}
+                  <div className="space-y-3">
+                    <span className="text-xs text-zinc-400 block">Color Grading</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {["none", "sepia", "vintage", "cool"].map((grade) => (
+                        <button
+                          key={grade}
+                          onClick={() => setColorGrade(grade)}
+                          className={cn(
+                            "py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border",
+                            colorGrade === grade 
+                              ? "bg-pink-500/20 border-pink-500 text-pink-400" 
+                              : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700"
+                          )}
+                        >
+                          {grade}
+                        </button>
+                      ))}
+                    </div>
+                    {colorGrade !== "none" && (
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px] text-zinc-500">
+                          <span>Intensity</span>
+                          <span>{gradeIntensity}%</span>
+                        </div>
+                        <input 
+                          type="range" min="0" max="100" value={gradeIntensity} 
+                          onChange={(e) => setGradeIntensity(parseInt(e.target.value))}
+                          className="w-full accent-pink-500 h-1" 
+                        />
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         <div className="mt-auto p-4 border-t border-zinc-800 bg-zinc-900/80 backdrop-blur-md sticky bottom-0 z-10">
@@ -490,25 +661,46 @@ export default function Create() {
                   <FlipVertical className="w-4 h-4" />
                 </button>
                 <button 
-                  onClick={() => { setZoom(1); setRotation(0); setFlipH(false); setFlipV(false); }}
+                  onClick={() => { 
+                    setZoom(1); 
+                    setRotation(0); 
+                    setFlipH(false); 
+                    setFlipV(false);
+                    setSharpen(0);
+                    setVignette(0);
+                    setNoise(0);
+                    setBlur(0);
+                    setColorGrade("none");
+                    setGradeIntensity(100);
+                  }}
                   className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-                  title="Reset View"
+                  title="Reset All View & Effects"
                 >
-                  <X className="w-4 h-4" />
+                  <RefreshCw className="w-4 h-4" />
                 </button>
               </>
             )}
           </div>
           <div className="flex items-center gap-2">
             {generatedImage && (
-              <button 
-                onClick={() => setShowUpscaleConfirm(true)}
-                disabled={isUpscaling}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {isUpscaling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Maximize className="w-4 h-4" />}
-                Upscale
-              </button>
+              <>
+                <button 
+                  onClick={handleGenerate}
+                  disabled={isGenerating}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  <RefreshCw className={cn("w-4 h-4", isGenerating && "animate-spin")} />
+                  Variations
+                </button>
+                <button 
+                  onClick={() => setShowUpscaleConfirm(true)}
+                  disabled={isUpscaling}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium text-pink-500 hover:text-pink-400 hover:bg-pink-500/10 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isUpscaling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Maximize className="w-4 h-4" />}
+                  Upscale
+                </button>
+              </>
             )}
             <div className="w-px h-6 bg-zinc-800 mx-1"></div>
             <button 
@@ -532,52 +724,6 @@ export default function Create() {
 
         {/* Canvas */}
         <div className="flex-1 overflow-auto p-4 md:p-8 flex items-center justify-center relative">
-          <AnimatePresence>
-            {showHistory && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="absolute right-0 top-0 bottom-0 w-64 bg-zinc-900/95 backdrop-blur-xl border-l border-zinc-800 z-20 overflow-y-auto p-4 shadow-2xl"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-sm">History</h3>
-                  <button onClick={() => setShowHistory(false)} className="text-zinc-500 hover:text-white">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {history.length === 0 ? (
-                    <p className="text-xs text-zinc-500 text-center py-8">No history yet</p>
-                  ) : (
-                    history.map((item) => (
-                      <div key={item.id} className="group relative rounded-lg overflow-hidden border border-zinc-800 bg-zinc-950">
-                        <img src={item.url} alt="" className="w-full aspect-square object-cover" />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
-                          <p className="text-[10px] text-white line-clamp-2 mb-2">{item.prompt}</p>
-                          <button 
-                            onClick={() => {
-                              setGeneratedImage(item.url);
-                              setPrompt(item.prompt);
-                              setNegativePrompt(item.negativePrompt);
-                              setGuidanceScale(item.guidanceScale);
-                              setSelectedModel(item.model);
-                              setAspectRatio(item.aspectRatio);
-                              setShowHistory(false);
-                            }}
-                            className="w-full py-1.5 bg-white text-black text-[10px] font-bold rounded"
-                          >
-                            Restore
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           <AnimatePresence>
             {showUpscaleConfirm && (
               <motion.div
@@ -655,13 +801,43 @@ export default function Create() {
               }}
               transition={{ type: "spring", damping: 20, stiffness: 100 }}
               className="relative max-w-full max-h-full rounded-xl overflow-hidden shadow-2xl shadow-pink-500/10 ring-1 ring-zinc-800"
+              style={{
+                filter: `
+                  contrast(${100 + sharpen / 2}%) 
+                  blur(${blur}px)
+                  ${colorGrade === 'sepia' ? `sepia(${gradeIntensity}%)` : ''}
+                  ${colorGrade === 'vintage' ? `sepia(${gradeIntensity / 2}%) hue-rotate(-30deg) saturate(${100 + gradeIntensity / 2}%) brightness(110%)` : ''}
+                  ${colorGrade === 'cool' ? `hue-rotate(180deg) saturate(${100 + gradeIntensity / 2}%)` : ''}
+                `
+              }}
             >
               <img
                 src={generatedImage}
                 alt="Generated artwork"
-                className="max-w-full max-h-[calc(100vh-12rem)] object-contain"
+                className="max-w-full max-h-[calc(100vh-12rem)] object-contain transition-all duration-300"
                 referrerPolicy="no-referrer"
               />
+              
+              {/* Noise Overlay */}
+              {noise > 0 && (
+                <div 
+                  className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-20"
+                  style={{ 
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                    opacity: noise / 500
+                  }}
+                />
+              )}
+
+              {/* Vignette Overlay */}
+              {vignette > 0 && (
+                <div 
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ 
+                    background: `radial-gradient(circle, transparent ${100 - vignetteRadius}%, rgba(0,0,0,${vignette / 100}) 100%)` 
+                  }}
+                />
+              )}
             </motion.div>
           ) : (
             <div className="flex flex-col items-center justify-center text-zinc-600 text-center max-w-md">
