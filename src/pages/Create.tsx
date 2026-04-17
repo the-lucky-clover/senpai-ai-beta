@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, ChangeEvent } from "react";
 import { useLocation } from "react-router-dom";
-import { Sparkles, Settings2, Image as ImageIcon, Download, Share2, Loader2, Wand2, Upload, Maximize, AlertCircle, X, History, ZoomIn, ZoomOut, RefreshCw, TrendingUp, FlipHorizontal, FlipVertical, Palette } from "lucide-react";
+import { Sparkles, Settings2, Image as ImageIcon, Download, Share2, Loader2, Wand2, Upload, Maximize, AlertCircle, X, History, ZoomIn, ZoomOut, RefreshCw, TrendingUp, FlipHorizontal, FlipVertical, Palette, Undo2, Redo2, RotateCcw, Sliders, Contrast, Sun, Video, Eraser, UserCircle2, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
 
@@ -8,6 +8,16 @@ const models = [
   { id: "anime-v1", name: "Senpai Anime V1" },
   { id: "realistic", name: "Senpai Realistic" },
   { id: "2.5d", name: "Senpai 2.5D" },
+];
+
+const exportFormats = [
+  { id: "mp4", name: "MP4 Video", ext: ".mp4" },
+  { id: "gif", name: "Animated GIF", ext: ".gif" },
+];
+
+const exportQualities = [
+  { id: "std", name: "Standard (720p)", bit: "4mbps" },
+  { id: "hd", name: "High Def (1080p)", bit: "8mbps" },
 ];
 
 const aspectRatios = [
@@ -50,12 +60,19 @@ export default function Create() {
   const [selectedModel, setSelectedModel] = useState(models[0].id);
   const [aspectRatio, setAspectRatio] = useState("3:4");
   const [guidanceScale, setGuidanceScale] = useState(7.5);
+  const [exportFormat, setExportFormat] = useState("mp4");
+  const [exportQuality, setExportQuality] = useState("hd");
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUpscaling, setIsUpscaling] = useState(false);
+  const [isRemovingWatermark, setIsRemovingWatermark] = useState(false);
+  const [isMakingDeepfake, setIsMakingDeepfake] = useState(false);
+  
   const [showUpscaleConfirm, setShowUpscaleConfirm] = useState(false);
   const [showFilters, setShowFilters] = useState(true);
+  const [showExport, setShowExport] = useState(false);
+  const [showAILab, setShowAILab] = useState(false);
   const [showPromptHistory, setShowPromptHistory] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,8 +87,78 @@ export default function Create() {
   const [vignetteRadius, setVignetteRadius] = useState(50);
   const [noise, setNoise] = useState(0);
   const [blur, setBlur] = useState(0);
+  const [brightness, setBrightness] = useState(100);
+  const [contrast, setContrast] = useState(100);
+  const [saturation, setSaturation] = useState(100);
   const [colorGrade, setColorGrade] = useState("none");
   const [gradeIntensity, setGradeIntensity] = useState(100);
+  
+  // Undo/Redo State
+  const [editHistory, setEditHistory] = useState<any[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  const currentEditState = {
+    zoom, rotation, flipH, flipV, sharpen, blur, vignette, noise, brightness, contrast, saturation, colorGrade, gradeIntensity
+  };
+
+  const pushToEditHistory = (newState: any) => {
+    const newHistory = editHistory.slice(0, historyIndex + 1);
+    newHistory.push(newState);
+    if (newHistory.length > 50) newHistory.shift();
+    setEditHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
+  const undo = () => {
+    if (historyIndex > 0) {
+      const prevIndex = historyIndex - 1;
+      const prevState = editHistory[prevIndex];
+      applyEditState(prevState);
+      setHistoryIndex(prevIndex);
+    }
+  };
+
+  const redo = () => {
+    if (historyIndex < editHistory.length - 1) {
+      const nextIndex = historyIndex + 1;
+      const nextState = editHistory[nextIndex];
+      applyEditState(nextState);
+      setHistoryIndex(nextIndex);
+    }
+  };
+
+  const applyEditState = (state: any) => {
+    setZoom(state.zoom);
+    setRotation(state.rotation);
+    setFlipH(state.flipH);
+    setFlipV(state.flipV);
+    setSharpen(state.sharpen);
+    setBlur(state.blur);
+    setVignette(state.vignette);
+    setNoise(state.noise);
+    setBrightness(state.brightness);
+    setContrast(state.contrast);
+    setSaturation(state.saturation);
+    setColorGrade(state.colorGrade);
+    setGradeIntensity(state.gradeIntensity);
+  };
+
+  // Capture state for undo/redo on major changes
+  useEffect(() => {
+    if (generatedImage && editHistory.length === 0) {
+      pushToEditHistory(currentEditState);
+    }
+  }, [generatedImage]);
+
+  const handleEditChange = (updater: () => void) => {
+    updater();
+    // We'll push to history after a short debounce or on mouseUp in a real app
+    // For now, let's trigger it on discrete actions like flips/rotations
+  };
+
+  const commitEdit = () => {
+    pushToEditHistory(currentEditState);
+  };
   
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [queue, setQueue] = useState<QueueItem[]>([]);
@@ -230,6 +317,24 @@ export default function Create() {
     }, 2000);
   };
 
+  const handleRemoveWatermark = () => {
+    if (!generatedImage || isRemovingWatermark) return;
+    setIsRemovingWatermark(true);
+    setTimeout(() => {
+      setGeneratedImage(generatedImage + (generatedImage.includes('?') ? '&' : '?') + 'clean=true');
+      setIsRemovingWatermark(false);
+    }, 2500);
+  };
+
+  const handleDeepfake = () => {
+    if (!generatedImage || isMakingDeepfake) return;
+    setIsMakingDeepfake(true);
+    setTimeout(() => {
+      setGeneratedImage(generatedImage + (generatedImage.includes('?') ? '&' : '?') + 'deepfake=true');
+      setIsMakingDeepfake(false);
+    }, 3000);
+  };
+
   const handleDownload = async () => {
     if (!generatedImage) return;
     try {
@@ -277,7 +382,7 @@ export default function Create() {
   const handleFlipV = () => setFlipV(prev => !prev);
 
   return (
-    <div className="flex-1 flex flex-col md:flex-row h-screen overflow-hidden bg-zinc-950">
+    <div className="flex-1 flex flex-col md:flex-row h-screen overflow-hidden bg-zinc-950 intro-fly-on">
       {/* Sidebar Controls */}
       <div className="w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-zinc-800 bg-zinc-900/50 flex flex-col overflow-y-auto">
         <div className="p-4 space-y-6">
@@ -291,6 +396,12 @@ export default function Create() {
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  handleGenerate();
+                }
+              }}
               placeholder="1girl, solo, looking at viewer, masterpiece, best quality..."
               className="w-full h-32 bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-pink-500/50 resize-none"
             />
@@ -372,6 +483,12 @@ export default function Create() {
             <textarea
               value={negativePrompt}
               onChange={(e) => setNegativePrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  handleGenerate();
+                }
+              }}
               placeholder="worst quality, low quality, bad anatomy, watermark..."
               className="w-full h-20 bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-pink-500/50 resize-none"
             />
@@ -499,7 +616,91 @@ export default function Create() {
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden space-y-4"
                 >
-                  <div className="pt-2"></div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs text-zinc-400">
+                        <span>Presets</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            setSaturation(0);
+                            setContrast(120);
+                            setBrightness(110);
+                            commitEdit();
+                          }}
+                          className="flex-1 py-1 px-2 bg-zinc-800 hover:bg-zinc-700 rounded text-[10px] font-bold text-zinc-300"
+                        >
+                          B&W
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setSaturation(60);
+                            setContrast(100);
+                            setBrightness(90);
+                            setColorGrade("sepia");
+                            commitEdit();
+                          }}
+                          className="flex-1 py-1 px-2 bg-zinc-800 hover:bg-zinc-700 rounded text-[10px] font-bold text-zinc-300"
+                        >
+                          Sepia
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setSaturation(140);
+                            setContrast(110);
+                            setBrightness(100);
+                            commitEdit();
+                          }}
+                          className="flex-1 py-1 px-2 bg-zinc-800 hover:bg-zinc-700 rounded text-[10px] font-bold text-zinc-300"
+                        >
+                          Vivid
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-2"></div>
+                    {/* Brightness & Contrast */}
+                    <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs text-zinc-400">
+                        <span className="flex items-center gap-1"><Sun className="w-3 h-3" /> Brightness</span>
+                        <span>{brightness}%</span>
+                      </div>
+                      <input 
+                        type="range" min="0" max="200" value={brightness} 
+                        onMouseUp={commitEdit}
+                        onChange={(e) => setBrightness(parseInt(e.target.value))}
+                        className="w-full accent-pink-500" 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs text-zinc-400">
+                        <span className="flex items-center gap-1"><Contrast className="w-3 h-3" /> Contrast</span>
+                        <span>{contrast}%</span>
+                      </div>
+                      <input 
+                        type="range" min="0" max="200" value={contrast} 
+                        onMouseUp={commitEdit}
+                        onChange={(e) => setContrast(parseInt(e.target.value))}
+                        className="w-full accent-pink-500" 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Saturation */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-zinc-400">
+                      <span>Saturation / B&W</span>
+                      <span>{saturation}%</span>
+                    </div>
+                    <input 
+                      type="range" min="0" max="200" value={saturation} 
+                      onMouseUp={commitEdit}
+                      onChange={(e) => setSaturation(parseInt(e.target.value))}
+                      className="w-full accent-pink-500" 
+                    />
+                  </div>
+
                   {/* Sharpen */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs text-zinc-400">
@@ -508,6 +709,7 @@ export default function Create() {
                     </div>
                     <input 
                       type="range" min="0" max="100" value={sharpen} 
+                      onMouseUp={commitEdit}
                       onChange={(e) => setSharpen(parseInt(e.target.value))}
                       className="w-full accent-pink-500" 
                     />
@@ -589,6 +791,144 @@ export default function Create() {
               )}
             </AnimatePresence>
           </div>
+          {/* Video Export Section */}
+          <div className="space-y-4 pt-4 border-t border-zinc-800">
+            <button 
+              onClick={() => setShowExport(!showExport)}
+              className="flex items-center justify-between w-full text-xs font-bold text-zinc-500 uppercase tracking-wider hover:text-zinc-300 transition-colors px-1"
+            >
+              <div className="flex items-center gap-2">
+                <Video className="w-3 h-3" />
+                Video Export
+              </div>
+              <motion.div animate={{ rotate: showExport ? 180 : 0 }}>
+                <RefreshCw className="w-3 h-3" />
+              </motion.div>
+            </button>
+            <AnimatePresence>
+              {showExport && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden space-y-4 pt-2"
+                >
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Format</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {exportFormats.map(fmt => (
+                        <button
+                          key={fmt.id}
+                          onClick={() => setExportFormat(fmt.id)}
+                          className={cn(
+                            "py-2 px-3 rounded-lg text-[10px] font-bold border transition-all uppercase tracking-tighter",
+                            exportFormat === fmt.id ? "bg-white text-black border-white" : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700"
+                          )}
+                        >
+                          {fmt.name.split(' ')[0]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Quality</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {exportQualities.map(q => (
+                        <button
+                          key={q.id}
+                          onClick={() => setExportQuality(q.id)}
+                          className={cn(
+                            "py-2 px-3 rounded-lg text-[10px] font-bold border transition-all uppercase tracking-tighter",
+                            exportQuality === q.id ? "bg-white text-black border-white" : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700"
+                          )}
+                        >
+                          {q.name.split(' ')[0]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* AI Lab Tools */}
+          <div className="space-y-4 pt-4 border-t border-zinc-800">
+            <button 
+              onClick={() => setShowAILab(!showAILab)}
+              className="flex items-center justify-between w-full text-xs font-bold text-cyan-500 uppercase tracking-wider hover:text-cyan-400 transition-colors px-1"
+            >
+              <div className="flex items-center gap-2">
+                <Wand2 className="w-3 h-3" />
+                AI Magic Lab
+              </div>
+              <motion.div animate={{ rotate: showAILab ? 180 : 0 }}>
+                <RefreshCw className="w-3 h-3" />
+              </motion.div>
+            </button>
+            <AnimatePresence>
+              {showAILab && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden space-y-2 pt-2"
+                >
+                  <button 
+                    onClick={handleUpscale}
+                    disabled={isUpscaling || !generatedImage}
+                    className="w-full flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-xl hover:border-cyan-500/50 hover:bg-cyan-500/5 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-cyan-500/10 rounded-lg group-hover:bg-cyan-500/20 transition-colors">
+                        <Maximize className="w-4 h-4 text-cyan-400" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-zinc-200">AI Upscaler</p>
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-tighter">4K Performance</p>
+                      </div>
+                    </div>
+                    {isUpscaling && <Loader2 className="w-4 h-4 text-cyan-500 animate-spin" />}
+                  </button>
+
+                  <button 
+                    onClick={handleRemoveWatermark}
+                    disabled={isRemovingWatermark || !generatedImage}
+                    className="w-full flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-xl hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-indigo-500/10 rounded-lg group-hover:bg-indigo-500/20 transition-colors">
+                        <Eraser className="w-4 h-4 text-indigo-400" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-zinc-200">Clean Master</p>
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-tighter">Remove Watermarks</p>
+                      </div>
+                    </div>
+                    {isRemovingWatermark && <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />}
+                  </button>
+
+                  <button 
+                    onClick={handleDeepfake}
+                    disabled={isMakingDeepfake || !generatedImage}
+                    className="w-full flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-xl hover:border-pink-500/50 hover:bg-pink-500/5 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-pink-500/10 rounded-lg group-hover:bg-pink-500/20 transition-colors">
+                        <UserCircle2 className="w-4 h-4 text-pink-400" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-zinc-200">Face Morpher</p>
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-tighter">Deepfake Suite</p>
+                      </div>
+                    </div>
+                    {isMakingDeepfake && <Loader2 className="w-4 h-4 text-pink-500 animate-spin" />}
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         <div className="mt-auto p-4 border-t border-zinc-800 bg-zinc-900/80 backdrop-blur-md sticky bottom-0 z-10">
@@ -619,29 +959,48 @@ export default function Create() {
           <div className="flex items-center gap-2">
             {generatedImage && (
               <>
+                <div className="flex items-center gap-1 mr-2 px-1 py-1 rounded-lg bg-black/40 border border-zinc-800">
+                  <button 
+                    onClick={undo}
+                    disabled={historyIndex <= 0}
+                    className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Undo"
+                  >
+                    <Undo2 className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={redo}
+                    disabled={historyIndex >= editHistory.length - 1}
+                    className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Redo"
+                  >
+                    <Redo2 className="w-4 h-4" />
+                  </button>
+                </div>
+
                 <button 
-                  onClick={handleZoomIn}
+                  onClick={() => { handleZoomIn(); setTimeout(commitEdit, 0); }}
                   className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                   title="Zoom In"
                 >
                   <ZoomIn className="w-5 h-5" />
                 </button>
                 <button 
-                  onClick={handleZoomOut}
+                  onClick={() => { handleZoomOut(); setTimeout(commitEdit, 0); }}
                   className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                   title="Zoom Out"
                 >
                   <ZoomOut className="w-5 h-5" />
                 </button>
                 <button 
-                  onClick={handleRotate}
+                  onClick={() => { handleRotate(); setTimeout(commitEdit, 0); }}
                   className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                   title="Rotate 90°"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <RotateCcw className="w-4 h-4" />
                 </button>
                 <button 
-                  onClick={handleFlipH}
+                  onClick={() => { handleFlipH(); setTimeout(commitEdit, 0); }}
                   className={cn(
                     "p-2 rounded-lg transition-colors",
                     flipH ? "bg-pink-500/20 text-pink-500" : "text-zinc-400 hover:text-white hover:bg-zinc-800"
@@ -651,7 +1010,7 @@ export default function Create() {
                   <FlipHorizontal className="w-4 h-4" />
                 </button>
                 <button 
-                  onClick={handleFlipV}
+                  onClick={() => { handleFlipV(); setTimeout(commitEdit, 0); }}
                   className={cn(
                     "p-2 rounded-lg transition-colors",
                     flipV ? "bg-pink-500/20 text-pink-500" : "text-zinc-400 hover:text-white hover:bg-zinc-800"
@@ -791,53 +1150,58 @@ export default function Create() {
             </div>
           ) : generatedImage ? (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.8 }}
               animate={{ 
                 opacity: 1, 
                 scale: zoom, 
                 rotate: rotation,
                 scaleX: flipH ? -zoom : zoom,
-                scaleY: flipV ? -zoom : zoom
+                scaleY: flipV ? -zoom : zoom,
               }}
-              transition={{ type: "spring", damping: 20, stiffness: 100 }}
-              className="relative max-w-full max-h-full rounded-xl overflow-hidden shadow-2xl shadow-pink-500/10 ring-1 ring-zinc-800"
+              transition={{ type: "spring", damping: 25, stiffness: 120 }}
+              className="relative max-w-full max-h-full rounded-2xl overflow-hidden shadow-2xl shadow-pink-500/10 ring-1 ring-white/10"
               style={{
                 filter: `
-                  contrast(${100 + sharpen / 2}%) 
-                  blur(${blur}px)
+                  brightness(${brightness}%) 
+                  contrast(${contrast}%) 
+                  saturate(${saturation}%) 
+                  blur(${blur}px) 
                   ${colorGrade === 'sepia' ? `sepia(${gradeIntensity}%)` : ''}
                   ${colorGrade === 'vintage' ? `sepia(${gradeIntensity / 2}%) hue-rotate(-30deg) saturate(${100 + gradeIntensity / 2}%) brightness(110%)` : ''}
                   ${colorGrade === 'cool' ? `hue-rotate(180deg) saturate(${100 + gradeIntensity / 2}%)` : ''}
                 `
               }}
             >
-              <img
-                src={generatedImage}
-                alt="Generated artwork"
-                className="max-w-full max-h-[calc(100vh-12rem)] object-contain transition-all duration-300"
-                referrerPolicy="no-referrer"
-              />
-              
-              {/* Noise Overlay */}
-              {noise > 0 && (
-                <div 
-                  className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-20"
-                  style={{ 
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-                    opacity: noise / 500
-                  }}
+              <div className="relative overflow-hidden shimmer-cyber">
+                <img
+                  src={generatedImage}
+                  alt="Generated Masterpiece"
+                  className="max-w-full h-auto max-h-[calc(100vh-16rem)] object-contain transition-all duration-300"
+                  referrerPolicy="no-referrer"
                 />
-              )}
+                
+                {/* Noise/Grain Overlay */}
+                {noise > 0 && (
+                  <div 
+                    className="absolute inset-0 pointer-events-none opacity-[0.05]"
+                    style={{ 
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                      filter: `contrast(${noise}%) brightness(${noise}%)`,
+                      opacity: noise / 1000
+                    }}
+                  />
+                )}
 
-              {/* Vignette Overlay */}
-              {vignette > 0 && (
-                <div 
-                  className="absolute inset-0 pointer-events-none"
-                  style={{ 
-                    background: `radial-gradient(circle, transparent ${100 - vignetteRadius}%, rgba(0,0,0,${vignette / 100}) 100%)` 
-                  }}
-                />
-              )}
+                {/* Vignette Overlay */}
+                {vignette > 0 && (
+                  <div 
+                    className="absolute inset-0 pointer-events-none"
+                    style={{ 
+                      background: `radial-gradient(circle, transparent ${100 - vignetteRadius}%, rgba(0,0,0,${vignette / 100}) 100%)` 
+                    }}
+                  />
+                )}
+              </div>
             </motion.div>
           ) : (
             <div className="flex flex-col items-center justify-center text-zinc-600 text-center max-w-md">

@@ -1,5 +1,5 @@
 import { useState, useRef, ChangeEvent } from "react";
-import { Sparkles, Settings2, Video, Download, Share2, Loader2, Wand2, Upload, AlertCircle, X, Play, Film, Move, Clock, Monitor, Activity, Palette, Scissors, Sliders, Layers, Plus, Volume2, Type, Gauge, FileVideo, Music, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles, Settings2, Video, Download, Share2, Loader2, Wand2, Upload, AlertCircle, X, Play, Film, Move, Clock, Monitor, Activity, Palette, Scissors, Sliders, Layers, Plus, Volume2, Type, Gauge, FileVideo, Music, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
 
@@ -62,6 +62,15 @@ export default function VideoPage() {
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationTelemetry, setGenerationTelemetry] = useState({
+    eta: "0s",
+    step: "Initializing",
+    resolution: "720p",
+    temp: "42°C",
+    load: "88%"
+  });
+  const [showProgressModal, setShowProgressModal] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
@@ -173,13 +182,44 @@ export default function VideoPage() {
     }
 
     setIsGenerating(true);
+    setShowProgressModal(true);
+    setGenerationProgress(0);
     setGeneratedVideo(null);
     setShowEditor(false);
     setError(null);
     
+    // Simulation steps
+    const steps = [
+      "Analyzing prompt vectors...",
+      "Allocating GPU cluster...",
+      "Generating keyframes...",
+      "Synthesizing motion flow...",
+      "Upscaling and enhancing...",
+      "Encoding final stream..."
+    ];
+
     try {
-      // Simulate video generation time
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      const totalDuration = 8000; // 8 seconds for simulation
+      const interval = 100;
+      let elapsed = 0;
+
+      const progressTimer = setInterval(() => {
+        elapsed += interval;
+        const progress = Math.min((elapsed / totalDuration) * 100, 99);
+        setGenerationProgress(progress);
+        
+        const stepIndex = Math.floor((progress / 100) * steps.length);
+        setGenerationTelemetry(prev => ({
+          ...prev,
+          step: steps[stepIndex] || steps[steps.length - 1],
+          eta: `${Math.ceil((totalDuration - elapsed) / 1000)}s`,
+          temp: `${40 + Math.random() * 15 | 0}°C`,
+          load: `${85 + Math.random() * 10 | 0}%`
+        }));
+      }, interval);
+
+      await new Promise(resolve => setTimeout(resolve, totalDuration));
+      clearInterval(progressTimer);
 
       const videoUrls = [
         "https://assets.mixkit.co/videos/preview/mixkit-anime-girl-in-the-rain-at-night-40121-large.mp4",
@@ -192,6 +232,7 @@ export default function VideoPage() {
       setError("Video generation failed. Please try again later.");
     } finally {
       setIsGenerating(false);
+      setShowProgressModal(false);
     }
   };
 
@@ -201,7 +242,7 @@ export default function VideoPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col md:flex-row h-screen overflow-hidden bg-zinc-950">
+    <div className="flex-1 flex flex-col md:flex-row h-screen overflow-hidden bg-zinc-950 intro-fly-on">
       {/* Sidebar Controls */}
       <div className="w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-zinc-800 bg-zinc-900/50 flex flex-col overflow-y-auto">
         <div className="p-4 space-y-6">
@@ -238,6 +279,12 @@ export default function VideoPage() {
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  handleGenerate();
+                }
+              }}
               placeholder="Describe the motion: hair blowing in the wind, walking through a neon city, smiling at camera..."
               className="w-full h-32 bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-pink-500/50 resize-none"
             />
@@ -537,7 +584,77 @@ export default function VideoPage() {
         </div>
 
         {/* Canvas */}
-        <div className="flex-1 overflow-auto p-4 md:p-8 flex items-center justify-center relative">
+        <div className="flex-1 overflow-auto p-4 md:p-8 flex items-center justify-center relative bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-repeat">
+          <AnimatePresence>
+            {showProgressModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl"
+              >
+                <motion.div
+                  initial={{ scale: 0.8, y: 20, opacity: 0 }}
+                  animate={{ scale: 1, y: 0, opacity: 1 }}
+                  exit={{ scale: 0.8, y: 20, opacity: 0 }}
+                  className="w-full max-w-lg p-8 rounded-3xl bg-zinc-900 border border-white/10 shadow-[0_0_50px_rgba(236,72,153,0.15)] space-y-8 relative overflow-hidden"
+                >
+                  {/* Subtle Background Elements */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 blur-[60px] rounded-full" />
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-violet-600/10 blur-[50px] rounded-full" />
+
+                  <div className="space-y-2 text-center relative z-10">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                      className="inline-block mb-4"
+                    >
+                      <RefreshCw className="w-12 h-12 text-pink-500" />
+                    </motion.div>
+                    <h3 className="text-2xl font-black tracking-tighter text-white uppercase italic">Synthesizing Visuals</h3>
+                    <p className="text-zinc-500 text-xs font-mono tracking-widest uppercase">{generationTelemetry.step}</p>
+                  </div>
+
+                  <div className="space-y-4 relative z-10">
+                    <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                      <motion.div 
+                        className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500"
+                        initial={{ width: "0%" }}
+                        animate={{ width: `${generationProgress}%` }}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="bg-black/40 border border-white/5 p-3 rounded-xl text-center">
+                        <div className="text-[10px] text-zinc-600 uppercase font-black mb-1">ETA</div>
+                        <div className="text-sm font-bold text-pink-400 font-mono">{generationTelemetry.eta}</div>
+                      </div>
+                      <div className="bg-black/40 border border-white/5 p-3 rounded-xl text-center">
+                        <div className="text-[10px] text-zinc-600 uppercase font-black mb-1">Temp</div>
+                        <div className="text-sm font-bold text-orange-400 font-mono">{generationTelemetry.temp}</div>
+                      </div>
+                      <div className="bg-black/40 border border-white/5 p-3 rounded-xl text-center">
+                        <div className="text-[10px] text-zinc-600 uppercase font-black mb-1">Load</div>
+                        <div className="text-sm font-bold text-cyan-400 font-mono">{generationTelemetry.load}</div>
+                      </div>
+                      <div className="bg-black/40 border border-white/5 p-3 rounded-xl text-center">
+                        <div className="text-[10px] text-zinc-600 uppercase font-black mb-1">Res</div>
+                        <div className="text-sm font-bold text-indigo-400 font-mono">{resolution}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center pt-4">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
+                      <Loader2 className="w-3 h-3 text-pink-500 animate-spin" />
+                      <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-tighter">Secure Uplink Verified</span>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {error ? (
             <div className="flex flex-col items-center justify-center text-center max-w-md">
               <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">

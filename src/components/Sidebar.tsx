@@ -20,6 +20,8 @@ const navLinks = [
   { name: "Explore", path: "/explore", icon: Compass },
 ];
 
+import Logo from "./Logo";
+
 export default function Sidebar() {
   const location = useLocation();
 
@@ -27,11 +29,12 @@ export default function Sidebar() {
     <aside className="w-64 h-screen bg-zinc-950 border-r border-zinc-800 flex flex-col sticky top-0 z-50">
       {/* Logo */}
       <div className="p-6">
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 flex items-center justify-center shadow-lg shadow-pink-500/20 group-hover:scale-110 transition-transform">
-            <Sparkles className="w-6 h-6 text-white" />
+        <Link to="/" className="flex items-center gap-3 group">
+          <Logo className="w-10 h-10" />
+          <div className="flex flex-col">
+            <span className="font-extrabold text-xl tracking-tighter dmt-infill">Senpai AI</span>
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-zinc-500 -mt-1 opacity-50">Visionary Arts</span>
           </div>
-          <span className="font-bold text-xl tracking-tight text-white">Senpai-AI</span>
         </Link>
       </div>
 

@@ -1,8 +1,70 @@
 import { Link, useLocation } from "react-router-dom";
 import { Sparkles, Image as ImageIcon, Compass, Menu, X, Video, Heart, MessageCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import Logo from "./Logo";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
+
+function DMTParticles() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    let particles: { x: number; y: number; s: number; v: number; c: string }[] = [];
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = 80;
+    };
+
+    const createParticles = () => {
+      particles = [];
+      for (let i = 0; i < 60; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          s: Math.random() * 2 + 0.5,
+          v: Math.random() * 0.4 + 0.1,
+          c: `hsl(${Math.random() * 360}, 70%, 60%)`
+        });
+      }
+    };
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2);
+        ctx.fillStyle = p.c;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = p.c;
+        ctx.globalAlpha = 0.3;
+        ctx.fill();
+        p.y -= p.v;
+        p.x += Math.sin(p.y * 0.01) * 0.2; // Sine wave movement
+        if (p.y < 0) p.y = canvas.height;
+      });
+      animationFrameId = requestAnimationFrame(draw);
+    };
+
+    window.addEventListener('resize', resize);
+    resize();
+    createParticles();
+    draw();
+
+    return () => {
+      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none dmt-particles" />;
+}
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -55,18 +117,24 @@ export default function Navbar() {
   return (
     <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[90%] md:w-[80%] max-w-7xl">
       <div 
-        className="glass-panel rounded-full px-6 py-2 shimmer border-white/10 shadow-2xl shadow-black/50"
+        className="glass-panel rounded-full px-6 py-2 shimmer border-white/10 shadow-2xl shadow-black/50 overflow-hidden relative"
         style={{ "--shimmer-delay": "0s" } as any}
       >
-        <div className="flex justify-between h-12 items-center">
+        <div className="absolute inset-0 nav-backfill opacity-40 mix-blend-overlay" />
+        <DMTParticles />
+        
+        <div className="flex justify-between h-12 items-center relative z-10">
           <div className="flex items-center gap-8">
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-violet-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Sparkles className="w-5 h-5 text-white" />
+            <Link to="/" className="flex items-center gap-3 group">
+              <Logo className="w-9 h-9" />
+              <div className="flex flex-col">
+                <span className="font-extrabold text-xl tracking-tighter dmt-infill">
+                  Senpai AI
+                </span>
+                <span className="text-[8px] font-black uppercase tracking-[0.3em] text-zinc-500 -mt-1 opacity-50">
+                  Visionary Arts
+                </span>
               </div>
-              <span className="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-400">
-                Senpai-AI
-              </span>
             </Link>
           </div>
 

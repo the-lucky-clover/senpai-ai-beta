@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, Heart, Eye, Wand2, Download, Star } from "lucide-react";
-import { motion } from "motion/react";
+import { Search, Filter, Heart, Eye, Wand2, Download, Star, X, Copy, Check, Clock, Zap, BarChart3, Shield, Film } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
+import PopoverThumbnail from "../components/PopoverThumbnail";
 
 const categories = ["All", "Anime", "Realistic", "Fantasy", "Cyberpunk", "Mecha", "NSFW", "Companions"];
 
 interface GalleryItem {
   id: string | number;
+  type?: 'video' | 'image';
   src: string;
+  poster?: string;
   likes: number;
   views: number;
   downloads: number;
@@ -19,9 +22,14 @@ interface GalleryItem {
 
 const initialGalleryItems: GalleryItem[] = Array.from({ length: 20 }).map((_, i) => {
   const height = [400, 500, 600, 700, 800][Math.floor(Math.random() * 5)];
+  const isVideo = i % 5 === 0;
   return {
     id: i,
-    src: `https://picsum.photos/seed/gallery${i}/400/${height}`,
+    type: isVideo ? 'video' : 'image',
+    src: isVideo 
+      ? `https://assets.mixkit.co/videos/preview/mixkit-anime-girl-in-the-rain-at-night-40121-large.mp4` 
+      : `https://picsum.photos/seed/gallery${i}/400/${height}`,
+    poster: isVideo ? `https://picsum.photos/seed/poster${i}/400/600` : undefined,
     likes: Math.floor(Math.random() * 1000),
     views: Math.floor(Math.random() * 5000),
     downloads: Math.floor(Math.random() * 500),
@@ -30,12 +38,162 @@ const initialGalleryItems: GalleryItem[] = Array.from({ length: 20 }).map((_, i)
   };
 });
 
+function GalleryModal({ item, onClose }: { item: GalleryItem, onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(item.prompt || `Masterpiece anime style artwork by ${item.author}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden max-w-5xl w-full max-h-[90vh] flex flex-col md:flex-row relative"
+        onClick={e => e.stopPropagation()}
+      >
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="md:w-3/5 bg-zinc-900 flex items-center justify-center overflow-hidden">
+          {item.type === 'video' ? (
+            <video 
+              autoPlay 
+              loop 
+              muted 
+              playsInline 
+              src={item.src} 
+              poster={item.poster} 
+              className="max-h-full w-full object-contain" 
+            />
+          ) : (
+            <img 
+              src={item.src} 
+              alt="Gallery Detail" 
+              className="max-h-full w-full object-contain"
+              referrerPolicy="no-referrer"
+            />
+          )}
+        </div>
+
+        <div className="md:w-2/5 p-8 overflow-y-auto space-y-6 custom-scrollbar">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-zinc-400">
+              {item.author[0]}
+            </div>
+            <div>
+              <div className="text-sm font-bold text-white">@{item.author}</div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-black">Elite Creator</div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+              <Zap className="w-3 h-3 text-yellow-500" />
+              Negative Prompt / Generation Metadata
+            </label>
+            <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-900 text-xs text-zinc-400 leading-relaxed group relative">
+              {item.prompt || `Masterpiece anime style artwork by ${item.author}, sharp focus, highly detailed, vibrant colors, professional illustration.`}
+              <button 
+                onClick={handleCopy}
+                className="absolute top-2 right-2 p-2 rounded-lg bg-zinc-950/80 border border-zinc-800 text-zinc-400 hover:text-white transition-all active:scale-95"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-900">
+              <div className="text-[9px] font-black text-zinc-600 uppercase tracking-tighter mb-1 flex items-center gap-1">
+                <Clock className="w-2.5 h-2.5" /> Timestamp
+              </div>
+              <div className="text-xs text-zinc-300 font-mono">16.04.2026_16:16</div>
+            </div>
+            <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-900">
+              <div className="text-[9px] font-black text-zinc-600 uppercase tracking-tighter mb-1 flex items-center gap-1">
+                <Shield className="w-2.5 h-2.5" /> Model Version
+              </div>
+              <div className="text-xs text-zinc-300 font-mono">Senpai-V4.2_Ultra</div>
+            </div>
+            <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-900">
+              <div className="text-[9px] font-black text-zinc-600 uppercase tracking-tighter mb-1 flex items-center gap-1">
+                <Zap className="w-2.5 h-2.5" /> Seed
+              </div>
+              <div className="text-xs text-zinc-300 font-mono">{Math.floor(Math.random() * 9999999)}</div>
+            </div>
+            <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-900">
+              <div className="text-[9px] font-black text-zinc-600 uppercase tracking-tighter mb-1 flex items-center gap-1">
+                <BarChart3 className="w-2.5 h-2.5" /> Sampler
+              </div>
+              <div className="text-xs text-zinc-300 font-mono">Euler_a_SDXL</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6 py-4 border-y border-zinc-900/50">
+            <div className="text-center">
+              <div className="text-lg font-bold text-white">{item.likes}</div>
+              <div className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Favorited</div>
+            </div>
+            <div className="text-center border-l border-zinc-900/50 pl-6">
+              <div className="text-lg font-bold text-white">{item.views}</div>
+              <div className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Luminous Views</div>
+            </div>
+            <div className="text-center border-l border-zinc-900/50 pl-6">
+              <div className="text-lg font-bold text-white">{item.downloads}</div>
+              <div className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Downloads</div>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <button 
+              onClick={() => {
+                navigate('/create', { 
+                  state: { 
+                    referenceImage: item.src, 
+                    prompt: item.prompt || `Masterpiece anime style artwork by ${item.author}` 
+                  } 
+                });
+                onClose();
+              }}
+              className="flex-1 py-4 rounded-2xl bg-zinc-900 text-white font-black text-xs uppercase tracking-[0.2em] border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all flex items-center justify-center gap-2"
+            >
+              <Wand2 className="w-4 h-4" /> Remake Art
+            </button>
+            <button className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-pink-500/20 hover:opacity-90 transition-all flex items-center justify-center gap-2 overflow-hidden relative group">
+              <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+              <Download className="w-4 h-4" /> Save Masterpiece
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function Explore() {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [items, setItems] = useState<GalleryItem[]>(initialGalleryItems);
   const [companions, setCompanions] = useState<any[]>([]);
+  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
 
   useEffect(() => {
     const communityItems = JSON.parse(localStorage.getItem("senpai_community") || "[]");
@@ -150,22 +308,39 @@ export default function Explore() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: (i % 10) * 0.05 }}
-                className="relative group rounded-xl overflow-hidden bg-zinc-900 break-inside-avoid cursor-pointer"
+                className="relative group rounded-xl overflow-hidden bg-zinc-900 break-inside-avoid cursor-pointer hover:neon-glow-pink transition-all"
+                onClick={(e) => {
+                  const target = e.currentTarget;
+                  setAnchorRect(target.getBoundingClientRect());
+                  setSelectedItem(item);
+                }}
               >
-                <img
-                  src={item.src}
-                  alt={`Gallery item ${item.id}`}
-                  className="w-full h-auto object-cover"
-                  referrerPolicy="no-referrer"
-                  loading="lazy"
-                />
-                
+                {item.type === 'video' ? (
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    src={item.src}
+                    poster={item.poster}
+                    className="w-full h-auto object-cover"
+                  />
+                ) : (
+                  <img
+                    src={item.src}
+                    alt={`Gallery item ${item.id}`}
+                    className="w-full h-auto object-cover"
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-white truncate pr-4">
                       @{item.author}
                     </span>
                     <div className="flex items-center gap-1">
+                      {item.type === 'video' && <Film className="w-4 h-4 text-pink-500 mr-2" />}
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -225,6 +400,18 @@ export default function Explore() {
           </div>
         )}
       </div>
+      <AnimatePresence>
+        {selectedItem && anchorRect && (
+          <PopoverThumbnail 
+            item={selectedItem} 
+            anchorRect={anchorRect} 
+            onClose={() => {
+              setSelectedItem(null);
+              setAnchorRect(null);
+            }} 
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

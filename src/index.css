@@ -35,8 +35,223 @@
   }
 
   .glow-dark {
-    filter: drop-shadow(0 0 25px rgba(0, 0, 0, 1)) drop-shadow(0 0 10px rgba(0, 0, 0, 0.8));
-    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
+    filter: drop-shadow(0 0 40px rgba(0, 0, 0, 1)) drop-shadow(0 0 20px rgba(0, 0, 0, 0.9));
+  }
+
+  /* Cyberpunk Shimmer & Motion SFX */
+  .shimmer-cyber {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .shimmer-cyber::after {
+    content: "";
+    position: absolute;
+    top: -100%;
+    left: -100%;
+    width: 300%;
+    height: 300%;
+    background: linear-gradient(
+      45deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0) 45%,
+      rgba(255, 255, 255, 0.4) 50%,
+      rgba(255, 255, 255, 0) 55%,
+      transparent 100%
+    );
+    transform: rotate(25deg);
+    animation: shimmer-swipe 3s infinite cubic-bezier(0.19, 1, 0.22, 1);
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+
+  @keyframes shimmer-swipe {
+    0% { transform: translate(-30%, -30%) rotate(25deg); }
+    100% { transform: translate(30%, 30%) rotate(25deg); }
+  }
+
+  .neon-glow-pink {
+    box-shadow: 0 0 15px rgba(236, 72, 153, 0.4), 0 0 30px rgba(236, 72, 153, 0.2);
+  }
+
+  .neon-glow-cyan {
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.4), 0 0 30px rgba(6, 182, 212, 0.2);
+  }
+
+  .neon-border-pink {
+    border-color: rgba(236, 72, 153, 0.5);
+    box-shadow: inset 0 0 10px rgba(236, 72, 153, 0.2);
+  }
+
+  /* 3D Hyperspace Particles */
+  .hyperspace-container {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .hyperspace-star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    opacity: 0;
+    animation: hyperspace-travel var(--duration) linear infinite;
+    animation-delay: var(--delay);
+  }
+
+  @keyframes hyperspace-travel {
+    0% { transform: translateZ(0) scale(0); opacity: 0; }
+    20% { opacity: 0.8; }
+    80% { opacity: 0.8; }
+    100% { transform: translateZ(1000px) scale(2); opacity: 0; }
+  }
+
+  .scanline {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(255, 255, 255, 0.03) 50%,
+      transparent 100%
+    );
+    background-size: 100% 4px;
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  .nav-backfill {
+    background: linear-gradient(-45deg, #000, #09090b, #18181b, #09090b);
+    background-size: 400% 400%;
+    animation: luminousGradient 15s ease infinite;
+  }
+
+  /* 2Advanced Style Intro Animations */
+  .intro-fly-on {
+    animation: fly-on 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes fly-on {
+    0% { transform: translateY(30px) scale(0.95); opacity: 0; filter: blur(10px); }
+    100% { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
+  }
+
+  .intro-scale-up {
+    animation: scale-up 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes scale-up {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Psychedelic DMT Infill & Magic Mush Vibes */
+  @keyframes morph-gradient {
+    0% { background-position: 0% 50%; filter: hue-rotate(0deg) brightness(1); }
+    33% { background-position: 100% 0%; filter: hue-rotate(120deg) brightness(1.2); }
+    66% { background-position: 0% 100%; filter: hue-rotate(240deg) brightness(1.1); }
+    100% { background-position: 0% 50%; filter: hue-rotate(360deg) brightness(1); }
+  }
+
+  @keyframes lenticular-rays {
+    0% { transform: scale(1) rotate(0deg) skew(0deg); opacity: 0.3; }
+    50% { transform: scale(1.8) rotate(180deg) skew(15deg); opacity: 0.8; }
+    100% { transform: scale(1) rotate(360deg) skew(0deg); opacity: 0.3; }
+  }
+
+  @keyframes particle-chaos {
+    0% { transform: translate(0, 0) scale(1) rotate(0deg); filter: blur(0px); }
+    25% { transform: translate(10px, -15px) scale(1.4) rotate(90deg); filter: blur(2px); }
+    50% { transform: translate(-15px, 10px) scale(0.6) rotate(180deg); filter: blur(1px); }
+    75% { transform: translate(15px, 15px) scale(1.2) rotate(270deg); filter: blur(3px); }
+    100% { transform: translate(0, 0) scale(1) rotate(360deg); filter: blur(0px); }
+  }
+
+  .dmt-infill {
+    background: linear-gradient(
+      -45deg, 
+      #ff0080, #7928ca, #ff0080, #007cf0, #00dfd8, #bd00ff, #ff0080
+    );
+    background-size: 400% 400%;
+    animation: morph-gradient 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 0 15px rgba(255, 0, 128, 0.6)) drop-shadow(0 0 30px rgba(121, 40, 202, 0.4));
+    -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.1);
+  }
+
+  .dmt-infill::before {
+    content: "";
+    position: absolute;
+    inset: -5px;
+    background: radial-gradient(circle, rgba(236,72,153,0.3) 0%, rgba(121, 40, 202, 0.2) 40%, transparent 80%);
+    z-index: -1;
+    filter: blur(12px);
+    animation: lenticular-rays 3s ease-in-out infinite;
+    mix-blend-mode: color-dodge;
+  }
+
+  .lenticular-contain {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .lenticular-rays {
+    position: absolute;
+    inset: -100%;
+    background: conic-gradient(
+      from 0deg,
+      transparent,
+      rgba(255, 0, 128, 0.4),
+      rgba(121, 40, 202, 0.4),
+      rgba(0, 124, 240, 0.4),
+      rgba(0, 223, 216, 0.4),
+      transparent
+    );
+    animation: lenticular-rays 6s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: color-dodge;
+    filter: blur(1px);
+  }
+
+  .plasmatic-shine {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.4) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  .group:hover .plasmatic-shine {
+    opacity: 1;
+  }
+
+  .particle-chaos {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .particle-chaos div {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: white;
+    border-radius: full;
+    animation: particle-chaos 3s infinite;
+  }
+
+  .dmt-particles {
+    mask-image: linear-gradient(to bottom, black, transparent);
   }
 
   @keyframes shimmer {
