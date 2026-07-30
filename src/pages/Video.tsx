@@ -8,6 +8,14 @@ const videoModels = [
   { id: "anime-motion", name: "Anime Motion Pro" },
 ];
 
+const videoAspectRatios = [
+  { id: "1:1", label: "Square", width: 14, height: 14 },
+  { id: "3:4", label: "Portrait", width: 12, height: 16 },
+  { id: "4:3", label: "Standard", width: 16, height: 12 },
+  { id: "9:16", label: "Story", width: 10, height: 18 },
+  { id: "16:9", label: "Cinema", width: 18, height: 10 },
+];
+
 const durations = [
   { id: "5s", label: "5 Seconds" },
   { id: "10s", label: "10 Seconds" },
@@ -54,6 +62,7 @@ const videoTemplates = [
 export default function VideoPage() {
   const [prompt, setPrompt] = useState("");
   const [selectedModel, setSelectedModel] = useState(videoModels[0].id);
+  const [videoAspect, setVideoAspect] = useState("16:9");
   const [duration, setDuration] = useState("5s");
   const [resolution, setResolution] = useState("720p");
   const [frameRate, setFrameRate] = useState("30");
@@ -354,6 +363,37 @@ export default function VideoPage() {
                   )}
                 >
                   {model.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Video Aspect Ratio Presets */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-zinc-300 flex items-center justify-between">
+              <span className="flex items-center gap-2"><Film className="w-4 h-4 text-pink-400" /> Video Aspect Ratio</span>
+              <span className="text-xs text-pink-400 font-mono">{videoAspect}</span>
+            </label>
+            <div className="grid grid-cols-5 gap-1.5">
+              {videoAspectRatios.map((ar) => (
+                <button
+                  key={ar.id}
+                  onClick={() => setVideoAspect(ar.id)}
+                  className={cn(
+                    "p-2 rounded-xl text-center flex flex-col items-center justify-center gap-1 border transition-all group",
+                    videoAspect === ar.id
+                      ? "bg-pink-500/20 border-pink-500 text-pink-300 shadow-[0_0_10px_rgba(236,72,153,0.25)]"
+                      : "bg-zinc-950/80 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "border-2 rounded-[2px] transition-colors",
+                      videoAspect === ar.id ? "border-pink-400" : "border-zinc-500 group-hover:border-zinc-300"
+                    )}
+                    style={{ width: `${ar.width}px`, height: `${ar.height}px` }}
+                  />
+                  <span className="text-[10px] font-bold font-mono">{ar.id}</span>
                 </button>
               ))}
             </div>

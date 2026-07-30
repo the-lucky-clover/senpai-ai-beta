@@ -104,7 +104,7 @@ export default function Home() {
   return (
     <div className="flex-1 flex flex-col">
       {/* Hero Section */}
-      <section className="relative pt-20 pb-40 overflow-hidden min-h-[95vh] flex items-center bg-black">
+      <section className="relative pt-32 sm:pt-36 pb-40 overflow-hidden min-h-[95vh] flex items-center bg-black">
         {/* Background Video with Fade In */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           <AnimatePresence mode="wait">
@@ -136,7 +136,7 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/80 border border-zinc-800 text-sm text-zinc-300 mb-8 backdrop-blur-md shimmer-cyber"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-900/90 border border-zinc-800 text-sm text-zinc-300 mt-6 sm:mt-10 mb-8 sm:mb-10 backdrop-blur-md shimmer-cyber shadow-lg"
           >
             <Sparkles className="w-4 h-4 text-pink-500 animate-pulse" />
             <span>Senpai-AI v2.0 is now live</span>

@@ -115,30 +115,35 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[90%] md:w-[80%] max-w-7xl">
+    <nav className="fixed top-3 sm:top-5 left-1/2 -translate-x-1/2 z-50 w-[96%] sm:w-[92%] lg:w-[85%] xl:w-[80%] max-w-7xl">
       <div 
-        className="glass-panel rounded-full px-6 py-2 shimmer border-white/10 shadow-2xl shadow-black/50 overflow-hidden relative"
+        className="glass-panel rounded-full px-4 sm:px-6 md:px-7 py-2 sm:py-2.5 shimmer border border-white/10 shadow-2xl shadow-black/60 relative backdrop-blur-xl"
         style={{ "--shimmer-delay": "0s" } as any}
       >
-        <div className="absolute inset-0 nav-backfill opacity-40 mix-blend-overlay" />
-        <DMTParticles />
+        {/* Background effects clipped within rounded pill frame */}
+        <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 nav-backfill opacity-40 mix-blend-overlay" />
+          <DMTParticles />
+        </div>
         
-        <div className="flex justify-between h-12 items-center relative z-10">
-          <div className="flex items-center gap-8">
-            <Link to="/" className="flex items-center gap-3 group">
-              <Logo className="w-9 h-9" />
+        <div className="flex justify-between h-9 sm:h-11 items-center relative z-10 gap-3 sm:gap-6">
+          {/* Logo Section */}
+          <div className="flex items-center gap-3 sm:gap-8 shrink-0">
+            <Link to="/" className="flex items-center gap-2 sm:gap-3 group">
+              <Logo className="w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover:scale-105" />
               <div className="flex flex-col">
-                <span className="font-extrabold text-xl tracking-tighter dmt-infill">
+                <span className="font-black text-base sm:text-lg tracking-tight dmt-infill leading-tight">
                   Senpai AI
                 </span>
-                <span className="text-[8px] font-black uppercase tracking-[0.3em] text-zinc-500 -mt-1 opacity-50">
+                <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-[0.22em] text-zinc-400 -mt-0.5 opacity-70">
                   Visionary Arts
                 </span>
               </div>
             </Link>
           </div>
 
-          <div className="hidden md:flex items-center gap-1 bg-white/5 rounded-full px-2 py-1 border border-white/5">
+          {/* Navigation Links */}
+          <div className="hidden md:flex items-center gap-1 bg-white/[0.06] rounded-full px-2 py-1 border border-white/10 shrink-0 shadow-inner">
             {navLinks.map((link) => {
               const isActive = location.pathname === link.path;
               const Icon = link.icon;
@@ -147,10 +152,10 @@ export default function Navbar() {
                   key={link.path}
                   to={link.path}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
+                    "flex items-center gap-1.5 px-3.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs font-bold transition-all duration-200 whitespace-nowrap",
                     isActive
-                      ? "bg-white text-black shadow-lg"
-                      : "text-zinc-400 hover:text-white hover:bg-white/10"
+                      ? "bg-white text-black shadow-md shadow-white/10"
+                      : "text-zinc-300 hover:text-white hover:bg-white/10"
                   )}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -160,30 +165,30 @@ export default function Navbar() {
             })}
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* Right Action Buttons & Mobile Menu Trigger */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <AnimatePresence>
               {reaction && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8, x: 20 }}
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.8, x: 20 }}
-                  className="hidden xl:flex items-center gap-3 bg-pink-500/10 border border-pink-500/20 px-4 py-1.5 rounded-full"
+                  className="hidden xl:flex items-center gap-2 bg-pink-500/10 border border-pink-500/20 px-3 py-1 rounded-full"
                 >
-                  <MessageCircle className="w-3 h-3 text-pink-500" />
-                  <span className="text-[9px] font-medium text-pink-400 max-w-[150px] truncate">
+                  <MessageCircle className="w-3 h-3 text-pink-400" />
+                  <span className="text-[9px] font-semibold text-pink-300 max-w-[140px] truncate">
                     {reaction}
                   </span>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <div className="hidden md:flex items-center gap-3">
-              <button className="text-xs font-medium text-zinc-400 hover:text-white transition-colors px-3">
+            <div className="hidden md:flex items-center gap-2 sm:gap-3">
+              <button className="text-xs font-bold text-zinc-300 hover:text-white transition-colors px-3 py-1.5 whitespace-nowrap">
                 Sign In
               </button>
               <button 
-                className="px-5 py-2 rounded-full bg-white text-black text-xs font-bold hover:bg-zinc-200 transition-all hover:scale-105 shimmer active:scale-95"
-                style={{ "--shimmer-delay": "2s" } as any}
+                className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-white via-zinc-100 to-zinc-200 text-black text-xs font-black transition-all hover:bg-white hover:shadow-[0_0_15px_rgba(255,255,255,0.4)] active:scale-95 whitespace-nowrap shrink-0"
               >
                 Get Started
               </button>
@@ -192,7 +197,8 @@ export default function Navbar() {
             <div className="md:hidden flex items-center">
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="text-zinc-400 hover:text-white p-2"
+                className="text-zinc-300 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                aria-label="Toggle navigation menu"
               >
                 {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>

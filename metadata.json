@@ -1,5 +1,7 @@
 {
   "name": "Senpai-AI",
   "description": "Anime AI Image Generator Platform",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
+
