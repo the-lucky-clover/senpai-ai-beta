@@ -12,6 +12,7 @@ import Create from "./pages/Create";
 import Explore from "./pages/Explore";
 import VideoPage from "./pages/Video";
 import CompanionPage from "./pages/Companion";
+import { AuthProvider } from "./lib/AuthContext";
 
 function AppContent() {
   const location = useLocation();
@@ -48,7 +49,9 @@ function AppContent() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </BrowserRouter>
   );
 }

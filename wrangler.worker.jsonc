@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "senpai-ai-worker",
+  "main": "src/worker/index.ts",
+  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_date": "2025-07-29",
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "senpai-ai-db",
+      "database_id": "c82eff61-a76d-4ff5-83a0-8c94cda40abf"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "SENPAI_MEDIA",
+      "bucket_name": "senpai-ai-media"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "SENPAI_KV",
+      "id": "7209806ac0c441b896d4aaca0b250a35"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  }
+}

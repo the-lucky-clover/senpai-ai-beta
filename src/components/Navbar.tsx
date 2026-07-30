@@ -1,9 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
-import { Sparkles, Image as ImageIcon, Compass, Menu, X, Video, Heart, MessageCircle } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Compass, Menu, X, Video, Heart, MessageCircle, LogIn, UserPlus, User, LogOut, Mail, Loader2 } from "lucide-react";
 import Logo from "./Logo";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
+import { useAuth } from "../lib/AuthContext";
 
 function DMTParticles() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -69,7 +70,14 @@ function DMTParticles() {
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [reaction, setReaction] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const location = useLocation();
+  const { user, login, register, logout } = useAuth();
 
   useEffect(() => {
     // Proactive reactions based on page visits
@@ -113,6 +121,25 @@ export default function Navbar() {
     { name: "Video", path: "/video", icon: Video },
     { name: "Companion", path: "/companion", icon: Heart },
   ];
+
+  const handleAuth = async () => {
+    setAuthError(null);
+    setAuthLoading(true);
+    try {
+      if (authMode === 'login') {
+        await login(email);
+      } else {
+        await register(email, name);
+      }
+      setShowAuthModal(false);
+      setEmail('');
+      setName('');
+    } catch (err: any) {
+      setAuthError(err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   return (
     <nav className="fixed top-3 sm:top-5 left-1/2 -translate-x-1/2 z-50 w-[96%] sm:w-[92%] lg:w-[85%] xl:w-[80%] max-w-7xl">
@@ -183,15 +210,37 @@ export default function Navbar() {
               )}
             </AnimatePresence>
 
-            <div className="hidden md:flex items-center gap-2 sm:gap-3">
-              <button className="text-xs font-bold text-zinc-300 hover:text-white transition-colors px-3 py-1.5 whitespace-nowrap">
-                Sign In
-              </button>
-              <button 
-                className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-white via-zinc-100 to-zinc-200 text-black text-xs font-black transition-all hover:bg-white hover:shadow-[0_0_15px_rgba(255,255,255,0.4)] active:scale-95 whitespace-nowrap shrink-0"
-              >
-                Get Started
-              </button>
+            <div className="hidden md:flex items-center gap-3">
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full">
+                    <User className="w-3.5 h-3.5 text-zinc-400" />
+                    <span className="text-xs font-medium text-zinc-300">{user.name || user.email}</span>
+                  </div>
+                  <button 
+                    onClick={logout}
+                    className="px-3 py-1.5 rounded-full text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5 inline-block mr-1" /> Sign Out
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+                    className="text-xs font-medium text-zinc-400 hover:text-white transition-colors px-3"
+                  >
+                    <LogIn className="w-3.5 h-3.5 inline-block mr-1" /> Sign In
+                  </button>
+                  <button 
+                    onClick={() => { setAuthMode('register'); setShowAuthModal(true); }}
+                    className="px-5 py-2 rounded-full bg-white text-black text-xs font-bold hover:bg-zinc-200 transition-all hover:scale-105 shimmer active:scale-95"
+                    style={{ "--shimmer-delay": "2s" } as any}
+                  >
+                    <UserPlus className="w-3.5 h-3.5 inline-block mr-1" /> Get Started
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="md:hidden flex items-center">
@@ -232,15 +281,121 @@ export default function Navbar() {
               );
             })}
             <div className="pt-4 pb-2 flex flex-col gap-2 px-3">
-              <button className="w-full px-4 py-2 rounded-lg border border-zinc-700 text-white font-medium">
-                Sign In
-              </button>
-              <button className="w-full px-4 py-2 rounded-lg bg-white text-black font-semibold">
-                Get Started
-              </button>
+              {user ? (
+                <>
+                  <div className="px-4 py-2 rounded-lg border border-zinc-700 text-white font-medium text-sm">
+                    <User className="w-4 h-4 inline-block mr-2" /> {user.name || user.email}
+                  </div>
+                  <button 
+                    onClick={logout}
+                    className="w-full px-4 py-2 rounded-lg border border-zinc-700 text-white font-medium"
+                  >
+                    <LogOut className="w-4 h-4 inline-block mr-2" /> Sign Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => { setAuthMode('login'); setShowAuthModal(true); setIsOpen(false); }}
+                    className="w-full px-4 py-2 rounded-lg border border-zinc-700 text-white font-medium"
+                  >
+                    <LogIn className="w-4 h-4 inline-block mr-2" /> Sign In
+                  </button>
+                  <button 
+                    onClick={() => { setAuthMode('register'); setShowAuthModal(true); setIsOpen(false); }}
+                    className="w-full px-4 py-2 rounded-lg bg-white text-black font-semibold"
+                  >
+                    <UserPlus className="w-4 h-4 inline-block mr-2" /> Get Started
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
+      )}
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setShowAuthModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 w-full max-w-md relative"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-3 right-3 text-zinc-500 hover:text-white p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold dmt-infill">{authMode === 'login' ? 'Welcome Back' : 'Create Account'}</h2>
+              <p className="text-zinc-500 text-sm mt-1">
+                {authMode === 'login' ? 'Sign in to continue your journey' : 'Join the Senpai AI community'}
+              </p>
+            </div>
+
+            {authError && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+                {authError}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {authMode === 'register' && (
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                    className="w-full px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-pink-500/50"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-pink-500/50"
+                  autoFocus
+                />
+              </div>
+
+              <button
+                onClick={handleAuth}
+                disabled={authLoading || !email || (authMode === 'register' && !name)}
+                className="w-full py-2.5 rounded-lg bg-gradient-to-r from-pink-500 to-violet-600 text-white font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+              >
+                {authLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {authMode === 'login' ? 'Sign In' : 'Create Account'}
+              </button>
+            </div>
+
+            <p className="mt-4 text-center text-xs text-zinc-500">
+              {authMode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+              <button
+                onClick={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthError(null); }}
+                className="text-pink-400 hover:text-pink-300 font-medium"
+              >
+                {authMode === 'login' ? 'Sign Up' : 'Sign In'}
+              </button>
+            </p>
+          </motion.div>
+        </motion.div>
       )}
     </nav>
   );

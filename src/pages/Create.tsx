@@ -1,46 +1,11 @@
 import { useState, useRef, useEffect, ChangeEvent } from "react";
-import { useLocation } from "react-router-dom";
-import {
-  Sparkles,
-  Settings2,
-  Image as ImageIcon,
-  Download,
-  Share2,
-  Loader2,
-  Wand2,
-  Upload,
-  Maximize,
-  AlertCircle,
-  X,
-  History,
-  ZoomIn,
-  ZoomOut,
-  RefreshCw,
-  TrendingUp,
-  FlipHorizontal,
-  FlipVertical,
-  Palette,
-  Undo2,
-  Redo2,
-  RotateCcw,
-  Sliders,
-  Contrast,
-  Sun,
-  Video,
-  Eraser,
-  UserCircle2,
-  CheckCircle2,
-  Layers,
-  Dices,
-  Eye,
-  Maximize2,
-  SlidersHorizontal,
-  LayoutGrid
-} from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Sparkles, Settings2, Image as ImageIcon, Download, Share2, Loader2, Wand2, Upload, Maximize, AlertCircle, X, History, ZoomIn, ZoomOut, RefreshCw, TrendingUp, FlipHorizontal, FlipVertical, Palette, Undo2, Redo2, RotateCcw, Sliders, Contrast, Sun, Video, Eraser, UserCircle2, CheckCircle2, Layers, Dices, Eye, Maximize2, SlidersHorizontal, LayoutGrid, LogIn, UserPlus } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
 import PromptBuilder from "../components/PromptBuilder";
 import DesktopImageViewer, { ViewerImageItem } from "../components/DesktopImageViewer";
+import { api, getToken } from "../lib/api";
 
 const models = [
   { id: "anime-v1", name: "Senpai Anime V1" },
@@ -243,40 +208,32 @@ export default function Create() {
     }
   }, [location.state]);
 
-  const saveToHistory = (
-    url: string,
-    p: string,
-    np: string,
-    gs: number,
-    m: string,
-    ar: string
-  ) => {
+const saveToHistory = async (url: string, promptText: string, negPrompt: string, scale: number, modelId: string, ratio: string) => {
     const newItem: HistoryItem = {
       id: Date.now().toString(),
       url,
-      prompt: p,
-      negativePrompt: np,
-      guidanceScale: gs,
-      model: m,
-      aspectRatio: ar,
+      prompt: promptText,
+      negativePrompt: negPrompt,
+      guidanceScale: scale,
+      model: modelId,
+      aspectRatio: ratio,
       timestamp: Date.now()
     };
-    const updated = [newItem, ...history].slice(0, 30);
-    setHistory(updated);
-    localStorage.setItem("senpai_history", JSON.stringify(updated));
-
-    const communityItems = JSON.parse(localStorage.getItem("senpai_community") || "[]");
-    const communityItem = {
-      id: newItem.id,
-      src: url,
-      likes: 0,
-      views: 0,
-      downloads: 0,
-      author: "You",
-      prompt: p,
-      rating: 0
-    };
-    localStorage.setItem("senpai_community", JSON.stringify([communityItem, ...communityItems].slice(0, 50)));
+    const updatedHistory = [newItem, ...history].slice(0, 30);
+    setHistory(updatedHistory);
+    localStorage.setItem("senpai_history", JSON.stringify(updatedHistory));
+    
+    // Also save to community via API
+    try {
+      await api.community.create({
+        prompt: promptText,
+        type: 'image',
+        imageUrl: url,
+        category: 'generated',
+      });
+    } catch (err) {
+      console.warn('Failed to save to community:', err);
+    }
   };
 
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
@@ -334,6 +291,14 @@ export default function Create() {
     window.dispatchEvent(new CustomEvent("senpai_action", { detail: { type: "generate" } }));
 
     try {
+      // Check for auth token
+      const token = getToken();
+      if (!token) {
+        setError("Please sign in to generate images");
+        setIsGenerating(false);
+        return;
+      }
+
       let width = 800;
       let height = 800;
       if (aspectRatio === "3:4") { width = 768; height = 1024; }
@@ -341,48 +306,18 @@ export default function Create() {
       if (aspectRatio === "9:16") { width = 576; height = 1024; }
       if (aspectRatio === "16:9") { width = 1024; height = 576; }
 
-      const response = await fetch("/api/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          negativePrompt,
-          model: selectedModel,
-          aspectRatio,
-          width,
-          height,
-          seed,
-          steps,
-          cfgScale: guidanceScale,
-          sampler,
-          styleImage
-        })
+      const fullPrompt = `${prompt}, ${selectedModel === "anime-v1" ? "anime style, manga art, vibrant colors" : selectedModel === "realistic" ? "photorealistic anime, 8k, highly detailed, cinematic lighting" : "2.5d anime style, semi-realistic, digital illustration"}${negativePrompt ? `, negative prompt: ${negativePrompt}` : ""}, high quality, masterpiece`;
+
+      const result = await api.generate.image({
+        prompt: fullPrompt,
+        negativePrompt: negativePrompt,
+        width,
+        height,
+        model: selectedModel,
       });
 
-      if (!response.ok) {
-        throw new Error("Server image generation failed");
-      }
-
-      const data = await response.json();
-      if (data.imageUrl) {
-        setGeneratedImage(data.imageUrl);
-        saveToHistory(data.imageUrl, prompt, negativePrompt, guidanceScale, selectedModel, aspectRatio);
-        // Switch mobile tab to preview automatically on generation
-        setMobileTab("preview");
-      } else {
-        throw new Error("No image data returned");
-      }
-    } catch (err: any) {
-      console.warn("Generation error, triggering high-res fallback:", err);
-      // Fallback AI image pipeline
-      const modelContext = selectedModel === "anime-v1" ? "anime style, manga art, vibrant colors" :
-                           selectedModel === "realistic" ? "photorealistic anime, 8k, highly detailed, cinematic lighting" :
-                           "2.5d anime style, semi-realistic, digital illustration";
-      const fullPrompt = `${prompt}, ${modelContext}, high quality, masterpiece`;
-      const encodedPrompt = encodeURIComponent(fullPrompt);
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=800&seed=${seed}&nologo=true&model=flux`;
-      setGeneratedImage(fallbackUrl);
-      saveToHistory(fallbackUrl, prompt, negativePrompt, guidanceScale, selectedModel, aspectRatio);
+      setGeneratedImage(result.url);
+      saveToHistory(result.url, prompt, negativePrompt, guidanceScale, selectedModel, aspectRatio);
       setMobileTab("preview");
     } finally {
       setIsGenerating(false);
